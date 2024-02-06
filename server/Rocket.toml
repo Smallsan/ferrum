@@ -1,0 +1,2 @@
+[default.databases]
+postgres_db = { url = "postgres://username:password@localhost/database_name" }
