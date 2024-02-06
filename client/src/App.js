@@ -20,7 +20,6 @@ import Hidden from '@mui/material/Hidden'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Contact from './Contact'
 import FAQ from './Faq'
-import { Box } from '@mui/system';
 import './global.css';
 
 
