@@ -61,9 +61,9 @@ function App () {
     event.preventDefault()
     // Handle login logic here
     console.log(
-      `Logging in with username: ${username} and password: ${password}`
+      `Logging in with email: ${email} and password: ${password}`
     )
-    setUsername('')
+    setEmail('')
     setPassword('')
     handleLoginClose()
   }

@@ -1,27 +1,63 @@
+mod database;
 #[macro_use] extern crate rocket;
+use database::models::users::Model;
 use rocket::http::Status;
-use serde::Deserialize;
+use sea_orm::{Database, DatabaseConnection};
 use rocket::serde::json::Json;
+use bcrypt::{hash, verify, DEFAULT_COST};
 
-#[derive(Deserialize)]
-struct LoginRequest {
-    username: String,
+
+#[derive(serde::Deserialize)]
+struct RegisterData {
+    name: String,
+    email: String,
     password: String,
 }
 
-#[post("/login", format = "json", data = "<login_request>")]
-fn login(login_request: Json<LoginRequest>) -> Status {
-    let username = &login_request.username;
-    let password = &login_request.password;
+#[derive(serde::Deserialize)]
+struct LoginData {
+    email: String,
+    password: String,
+}
 
-    // Here, you would typically check the username and password against your database.
-    // If the login is successful, return a success status (e.g., Status::Ok).
-    // If the login fails, return an error status (e.g., Status::Unauthorized).
+async fn connect_to_db() -> Result<DatabaseConnection, sea_orm::error::DbErr> {
+    Database::connect("./database/ferrum_database.db").await
+}
 
-    Status::Ok
+#[post("/register", data = "<data>")]
+async fn register(data: Json<RegisterData>) -> Status {
+	let db = connect_to_db().await.unwrap();
+    let user = Model {
+        userid: 0, 
+        name: data.name.clone(),
+        email: data.email.clone(),
+        password: data.password.clone(),
+    };
+    match Model::create(user, &db).await {
+        Ok(_) => Status::Created,
+        Err(_) => Status::InternalServerError,
+    }
+}
+
+#[post("/login", data = "<data>")]
+async fn login(data: Json<LoginData>) -> Status {
+	let db = connect_to_db().await.unwrap();
+    let user = Model::find_user_by_email(data.email.clone(), &db).await;
+    match user {
+        Ok(Some(user)) => {
+            if user.password == data.password {
+                Status::Ok
+            } else {
+                Status::Unauthorized
+            }
+        },
+        Ok(None) => Status::NotFound,
+        Err(_) => Status::InternalServerError,
+    }
 }
 
 #[launch]
-fn rocket() -> _ {
-    rocket::build().mount("/", routes![login])
+async fn rocket() -> _ {
+    rocket::build()
+	.mount("/", routes![register, login])
 }
